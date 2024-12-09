@@ -8,6 +8,7 @@ Original file is located at
 """
 
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
@@ -33,7 +34,15 @@ def preprocess_data(df):
 def apply_minmax_scaling(X):
     scaler = MinMaxScaler()
     X_scaled = scaler.fit_transform(X)
+    print(f"Normlización (Min-Max-Scalling) aplicada con resutlado:\n{X_scaled}")
     return X_scaled
+
+# Estandarización
+def apply_z_core(X):
+    scaler = StandardScaler()
+    X_standardized = scaler.fit_transform(X)
+    print(f"Estandarización (Z-score Scalling) aplicada con resultado: {X_standardized.shape[1]}")
+    return X_standardized
 
 # Dividir los datos en conjunto de entrenamiento y prueba
 def split_data(X, y, test_size=0.2):
@@ -66,25 +75,44 @@ def apply_pca(X_train, X_test, n_components):
     X_test_pca = pca.transform(X_test)
     return X_train_pca, X_test_pca, pca
 
+# Nueva función para pruebas con nuevos datos
+def pruebas(model, nuevos_datos):
+    """    
+    Parámetros:
+    - model: Modelo entrenado.
+    - nuevos_datos: Lista con los valores de las características en el mismo orden que el conjunto de entrenamiento.
+    
+    Retorno:
+    - Mensaje indicando si la persona padece o no problemas.
+    """
+    nuevos_datos_df = pd.DataFrame([nuevos_datos])  # Convertimos los nuevos datos a DataFrame
+    prediccion = model.predict(nuevos_datos_df)
+    if prediccion[0] == 1:
+        resultado = "Usted padece problemas"
+    else:
+        resultado = "Usted no padece ninguna afección"
+    print(f"Predicción para los datos {nuevos_datos}: {resultado}")
+    return resultado
+
 # Función principal
 def main():
     # Cargar los datos
     df = load_data('heart.csv')
-
+    
     # Preprocesamiento
     X, y = preprocess_data(df)
-
+    
     # Aplicar Min-Max Scaling
     X_scaled = apply_minmax_scaling(X)
-
+    
     # División de datos
     X_train, X_test, y_train, y_test = split_data(X_scaled, y, test_size=0.2)
-
+    
     # Balanceo de clases
     X_train_res, y_train_res = balance_data(X_train, y_train)
-
+    
     # Evaluar PCA con diferentes componentes
-    components = [11, 10, 9, 5, 3]
+    components = [12, 11, 10, 9, 5, 3]
     results = {}
     for n in components:
         X_train_pca, X_test_pca, pca = apply_pca(X_train_res, X_test, n_components=n)
@@ -92,7 +120,7 @@ def main():
         accuracy, _ = evaluate_model(model, X_test_pca, y_test)
         results[n] = accuracy
         print(f'Componentes: {n} - Exactitud: {accuracy:.4f}')
-
+    
     # Mostrar los resultados
     best_n = max(results, key=results.get)
     print(f'\nLa mejor cantidad de componentes es: {best_n} con una exactitud de {results[best_n]:.4f}')
