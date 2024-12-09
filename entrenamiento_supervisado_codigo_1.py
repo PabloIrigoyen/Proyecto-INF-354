@@ -7,7 +7,8 @@ Original file is located at
     https://colab.research.google.com/drive/1oSxllCIfTeEalt6vMFagfhLtjOrSLxUv
 """
 
-from sklearn.preprocessing import StandardScaler,MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
@@ -26,29 +27,27 @@ def preprocess_data(df):
     # Asumimos que 'target' es la columna objetivo
     X = df.drop(columns='target')
     y = df['target']
-    # Eliminar características de baja varianza
+
+     # Eliminar características de baja varianza
     vt = VarianceThreshold(threshold=0.01)  # Umbral ajustable
     X_vt = vt.fit_transform(X)
     print(f"Selección de características aplicada: {X_vt.shape[1]} características retenidas.")
-
-    # Normalización (Min-Max Scaling)
-    scaler_minmax = MinMaxScaler()
-    X_normalized = scaler_minmax.fit_transform(X_vt)
-    print(f"Normalización (Min-Max Scaling) aplicada con reslutado:{X_normalized.shape[1]}")
-
-    # Estandarización (Z-score Scaling)
-    scaler_standard = StandardScaler()
-    X_standardized = scaler_standard.fit_transform(X_normalized)
-    print(f"Estandarización (Z-score Scaling) aplicada con reslutado:{X_standardized.shape[1]}")
-
     print("Datos preprocesados correctamente.\n")
-    return X_standardized, y
+    return X_vt, y
 
 # Aplicar Min-Max Scaling
 def apply_minmax_scaling(X):
     scaler = MinMaxScaler()
     X_scaled = scaler.fit_transform(X)
+    print(f"Normlización (Min-Max-Scalling) aplicada con resutlado:\n{X_scaled}")
     return X_scaled
+
+# Estandarización
+def apply_z_core(X):
+    scaler = StandardScaler()
+    X_standardized = scaler.fit_transform(X)
+    print(f"Estandarización (Z-score Scalling) aplicada con resultado: {X_standardized.shape[1]}")
+    return X_standardized
 
 # Dividir los datos en conjunto de entrenamiento y prueba
 def split_data(X, y, test_size=0.2):
@@ -89,49 +88,80 @@ def plot_confusion_matrix(cm):
     plt.xlabel('Etiqueta Predicha')
     plt.show()
 
+# Nueva función para pruebas con nuevos datos
+def pruebas(model, nuevos_datos):
+    """    
+    Parámetros:
+    - model: Modelo entrenado.
+    - nuevos_datos: Lista con los valores de las características en el mismo orden que el conjunto de entrenamiento.
+    
+    Retorno:
+    - Mensaje indicando si la persona padece o no problemas.
+    """
+    nuevos_datos_df = pd.DataFrame([nuevos_datos])  # Convertimos los nuevos datos a DataFrame
+    prediccion = model.predict(nuevos_datos_df)
+    if prediccion[0] == 1:
+        resultado = "Usted padece problemas"
+    else:
+        resultado = "Usted no padece ninguna afección"
+    print(f"Predicción para los datos {nuevos_datos}: {resultado}")
+    return resultado
+
 # Función principal
 def main():
     # Cargar los datos
     df = load_data('heart.csv')
-
+    
     # Preprocesamiento
     X, y = preprocess_data(df)
-
+    
     # Aplicar Min-Max Scaling
     X_scaled = apply_minmax_scaling(X)
 
     print("💨Splits - Primera ejecución (0.8 - 0.2)\n")
-
+    
     # División de datos 0.8-0.2
     X_train, X_test, y_train, y_test = split_data(X_scaled, y, test_size=0.2)
-
+    
     # Balanceo de clases (opcional)
     X_train_res, y_train_res = balance_data(X_train, y_train)
-
+    
     # Entrenamiento del modelo
     model = train_random_forest(X_train_res, y_train_res)
-
+    
     # Evaluación
     accuracy, cm = evaluate_model(model, X_test, y_test)
-
+    
+    # Probando con nuevos datos
+    print("\nPruebas con nuevos datos\n")
+    nuevos_datos = [57, 1, 3, 140, 241, 0, 1, 123, 1, 0.2, 1, 0, 3]  # Datos de ejemplo
+    pruebas(model, nuevos_datos)
+    
     # Matriz de confusión
     plot_confusion_matrix(cm)
 
     print("\n💨Splits - Segunda ejecución(0.5 - 0.5)\n")
+
+    
+
     # División de datos 0.5-0.5
     X_train, X_test, y_train, y_test = split_data(X_scaled, y, test_size=0.5)
-
+    
       # Balanceo de clases (opcional)
     X_train_res, y_train_res = balance_data(X_train, y_train)
-
+    
     # Entrenamiento del modelo
     model = train_random_forest(X_train_res, y_train_res)
-
+    
     # Evaluación
     accuracy, cm = evaluate_model(model, X_test, y_test)
 
+    # Probando con nuevos datos
+    print("\nPruebas con nuevos datos\n")
+    nuevos_datos = [57, 1, 3, 140, 241, 0, 1, 123, 1, 0.2, 1, 0, 3]  # Datos de ejemplo
+    pruebas(model, nuevos_datos)
+    
     # Matriz de confusión
     plot_confusion_matrix(cm)
 if __name__ == "__main__":
     main()
-
